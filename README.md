@@ -1,64 +1,100 @@
 # Patchbay releases
 
-The packages of Patchbay, their signatures and their installers. The source is not in this repository.
+English | [简体中文](README.zh-CN.md)
 
-Patchbay is a local-first control space for coding agents that run on your machine: start them, follow what they do, answer their approvals, and take over their terminal, from your phone or from a browser, through a Relay.
+This repository holds the release packages of Patchbay, their signatures and their installers. The source code is not here.
 
-> No version has been published here yet: the first will be the one after 0.6.1. Until then the commands below find nothing.
+Patchbay lets you run coding agents (Claude Code, Codex, pi) on your own computer and work with them from your phone or a browser: start them, follow what they do, answer their approval requests and take over their terminal.
 
-## The three parts
+> No version has been published here yet; the first will be the one after 0.6.1. Each component's guide below becomes available when that component's first version is marked as the latest.
 
-Each is installed on its own machine from its package here, and has its own versions.
+## Components
 
-| Part | Where it runs | Package |
+Patchbay has three components. Each has its own package and its own version numbers.
+
+| Component | What it does | Package |
 | --- | --- | --- |
-| Host | each Computer whose agents you run, as the user who runs them | `patchbay-host-<version>-linux-<x64 or arm64>.tar.gz` |
-| Relay | a server with a public address: phones reach the Computer through it | `patchbay-relay-<version>-linux-<x64 or arm64>.tar.gz` |
-| Web | a server with a public address: the page a phone opens | `patchbay-web-<version>-any.tar.gz` |
+| Host | Runs on the Computer where your coding agents run, as the user who runs them | `patchbay-host-<version>-linux-<x64 or arm64>.tar.gz` |
+| Relay | Runs on a server with a public address and relays the connection between your phone and the Computer | `patchbay-relay-<version>-linux-<x64 or arm64>.tar.gz` |
+| Web | Runs on a server with a public address and serves the interface you open on your phone or in a browser | `patchbay-web-<version>-any.tar.gz` |
+
+The Relay and the Web can run on the same server or on two. Each component's guide covers its requirements, configuration, upgrades, rollback, uninstalling and troubleshooting:
+
+- [Host guide](host/README.md)
+- [Relay guide](relay/README.md): as a system service or in Docker
+- [Web guide](web/README.md)
 
 ## Install
 
 You need:
 
-- a server running Debian 12 or 13, or Ubuntu 24.04 or 26.04 (x86_64 or arm64), with TCP 80 and 443 open and two domains pointing to it, one for the Relay and one for the Web (the two can also be on two servers);
-- a Computer on one of the same systems, used as the user who runs the agents, with Claude Code, Codex or pi installed, logged in and on that shell's `PATH` (the first install keeps that `PATH` for the agents).
+- A server (or two) running Debian 12 or 13, or Ubuntu 24.04 or 26.04, on x86_64 or arm64, with TCP ports 80 and 443 open, and a domain for the Relay and one for the Web, each pointing to the server it runs on.
+- A Computer running one of the same systems, used as the user who runs the agents, with Claude Code, Codex or pi installed, logged in and on that shell's `PATH`. The first install saves that `PATH` for the agents.
 
-**1. The server.** Once, Caddy and the Relay's site, written by hand (the Web's installer writes its own):
+The commands below use example domains. Set `RELAY_DOMAIN` and `WEB_DOMAIN` to your own in the shell where you run them.
+
+**1. Each server.** On every server that runs the Relay or the Web, install Caddy:
 
 ```sh
-sudo apt install caddy curl                    # with minisign too, each package's signature is checked
-# add this line to /etc/caddy/Caddyfile, once:  import sites/*.caddy
+sudo apt install caddy curl minisign           # minisign is optional; with it, every install verifies the package's signature
 sudo mkdir -p /etc/caddy/sites
-printf '<relay domain> {\n\treverse_proxy 127.0.0.1:8787\n}\n' | sudo tee /etc/caddy/sites/patchbay-relay.caddy
+```
+
+Then make sure `/etc/caddy/Caddyfile` contains this line once, at the top level (not inside a site block), so that Caddy loads the sites in `/etc/caddy/sites/`:
+
+```
+import sites/*.caddy
+```
+
+Add it if it is missing; the Web's installer stops without it. Do not add it a second time: a site imported twice makes Caddy refuse the configuration.
+
+**2. The Relay**, on its server. Configure Caddy for the Relay, then install it:
+
+```sh
+RELAY_DOMAIN=relay.example.com
+printf '%s {\n\treverse_proxy 127.0.0.1:8787\n}\n' "$RELAY_DOMAIN" | sudo tee /etc/caddy/sites/patchbay-relay.caddy
 sudo systemctl reload caddy
+curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/relay/install.sh | sudo sh -s -- --domain "$RELAY_DOMAIN"   # add --docker /opt/patchbay-relay-docker to run it in Docker
 ```
 
-Then the Relay, the Web, and an invitation for the Computer:
+**3. The Web**, on its server. Its installer configures Caddy itself:
 
 ```sh
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/relay/install.sh | sudo sh -s -- --domain <relay domain>   # --docker <dir>: in Docker
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/web/install.sh | sudo sh -s -- --domain <web domain>
-sudo patchbay-relay invite                     # prints the line for the Computer, for one use within 5 minutes
+WEB_DOMAIN=app.example.com
+curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/web/install.sh | sudo sh -s -- --domain "$WEB_DOMAIN"
 ```
 
-**2. The Computer**, as that user (only `apt` takes sudo):
+**4. The Host**, on the Computer, as that user (only `apt` needs sudo):
 
 ```sh
-sudo apt install curl                          # and minisign, as on the server
+sudo apt install curl minisign                 # minisign is optional, as on the server
 curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/host/install.sh | sh -s --
-loginctl enable-linger                         # used over ssh, or runs go on after you log out
-patchbay roots add <dir>                       # the folder runs may start in
-patchbay relay join --url https://<relay domain> --code <code>   # the line invite printed
-patchbay devices pair                          # once `patchbay relay` says connected
+loginctl enable-linger                         # needed over ssh, and for agents to keep running after you log out
 ```
 
-Where `loginctl enable-linger` is denied, an administrator runs `sudo loginctl enable-linger <user>`. `patchbay doctor` checks the Computer item by item, with what to do.
+If the installer says that `~/.local/bin` is not on your `PATH`, run the `export PATH=...` line it prints before going on. Then add a root folder the agents may work in. It must be a folder that already exists; use your own, and add more if you like:
 
-**3. The phone.** Open `https://<web domain>`, add it to the Home Screen, and in it scan the QR code `patchbay devices pair` shows; then type the code the phone shows where `patchbay devices pair` asks for it.
+```sh
+patchbay roots add "$HOME/projects"
+```
+
+If `loginctl enable-linger` is not allowed, an administrator can run `sudo loginctl enable-linger <user>`. `patchbay doctor` checks the Computer item by item and says what to fix.
+
+**5. Join the Relay.** When the Host is installed, create an invitation on the Relay's server:
+
+```sh
+sudo patchbay-relay invite
+```
+
+It prints a line `patchbay relay join --url https://… --code …` with an invitation code. Run that line on the Computer within 5 minutes; it works once.
+
+**6. Pair the phone.** When `patchbay relay` on the Computer shows `connected`, run `patchbay devices pair` there. It shows a pairing code as a QR code. On the phone, open the Web's address (for example `https://app.example.com`), add it to the Home Screen, and in it scan the pairing code. The phone then shows a confirmation code: type it into the Computer's terminal, where `patchbay devices pair` asks for it.
 
 ## Update
 
-Each on its own machine: the latest version when it is newer than the one installed, or with `--version <version>` that version, an older one too.
+If a machine runs 0.6.1 or earlier, it was installed from the previous download location, and the commands below still look there. Move it once by following the upgrade steps in the release notes of the first version published here; after that, update with these commands.
+
+On each machine, this installs the latest version if it is newer than the installed one. With `--version <version>`, it installs that version, older ones too.
 
 ```sh
 patchbay update                                # the Computer
@@ -66,31 +102,31 @@ sudo patchbay-relay update                     # the Relay
 sudo /srv/patchbay-web/current/fetch.sh        # the Web
 ```
 
-## What is here
+## Releases
 
-- **A release for each version**, tagged `<part>-v<version>` (`host-v0.7.0`): its packages, each with its signature (`.minisig`), and its `install.sh`. Its text is what that version changed, with the steps of an upgrade that needs some by hand.
-- **A release for each part**, tagged `host`, `relay` and `web`: the `install.sh` a first install runs, and `latest`, one line with the number of the latest version. A version is put up first, tried, and then made the latest.
+- **One release per version**, tagged `<component>-v<version>` (for example `host-v0.7.0`). It contains the packages, a signature (`.minisig`) for each, the version's `install.sh` and its guides. Its release notes describe the changes, including any manual upgrade steps.
+- **One release per component**, tagged `host`, `relay` or `web`. It contains the `install.sh` that a first install uses, and `latest`, a single line with the latest version number. A new version is published first, tested on real machines, and then marked as the latest.
 
-To install a version by its number, one that is not the latest yet too:
+To install a version by its number, including one not yet marked as the latest, replace `<component>` and `<version>`:
 
-```sh
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/<part>-v<version>/install.sh | sh -s -- --version <version>   # the Relay and the Web: sudo sh, and their --domain
+```
+curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/<component>-v<version>/install.sh | sh -s -- --version <version>
 ```
 
-Each `install.sh` fetches that version's package, checks its signature when `minisign` is installed (without it, it says in a line that only HTTPS was relied on), and runs the installer inside the package with the options given.
+For the Relay and the Web, use `sudo sh` and add `--domain`. Each `install.sh` downloads the version's package, verifies its signature when `minisign` is installed (otherwise it relies on HTTPS alone and says so), and runs the installer inside the package with the options you gave.
 
 ## Signatures
 
-Every package is signed with [minisign](https://jedisct1.github.io/minisign/). The release key's public half:
+Every package is signed with [minisign](https://jedisct1.github.io/minisign/). The public key:
 
 ```
 RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 ```
 
-The installers have it written in them. To check a package by hand, with its `.minisig` beside it:
+The installers have it built in and, when `minisign` is installed, check everything below themselves. To verify a package by hand, put its `.minisig` in the same directory and run:
 
 ```sh
-minisign -Vm patchbay-host-<version>-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
+minisign -Vm patchbay-host-0.7.0-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 ```
 
-The trusted comment it prints is the package's file name: a signature is of that one package, and does not pass for another.
+minisign checks the content, not the file name, so a renamed file still verifies. After it succeeds, make sure the trusted comment it prints is exactly the package's file name.
