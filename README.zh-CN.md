@@ -28,18 +28,25 @@ Relay 和 Web 可以部署在同一台服务器上，也可以分开部署。各
 
 需要准备：
 
-- 一台（或两台）服务器，运行 Debian 12 或 13，或 Ubuntu 24.04 或 26.04，x86_64 或 arm64，开放 TCP 80 和 443 端口，并有两个指向它的域名：一个给 Relay，一个给 Web。
+- 一台（或两台）服务器，运行 Debian 12 或 13，或 Ubuntu 24.04 或 26.04，x86_64 或 arm64，开放 TCP 80 和 443 端口；Relay 和 Web 的域名分别指向各自所在的服务器。
 - 一台运行上述系统之一的电脑，以运行 Agent 的用户身份操作，已安装并登录 Claude Code、Codex 或 pi，并且它们在这个 shell 的 `PATH` 中。首次安装会为 Agent 保存这个 `PATH`。
 
 下面的命令使用示例域名。请在运行命令的 shell 中，把 `RELAY_DOMAIN` 和 `WEB_DOMAIN` 设为你自己的域名。
 
-**1. 每台服务器。** 在运行 Relay 或 Web 的每台服务器上安装 Caddy，并让它加载 `/etc/caddy/sites/` 中的站点。缺少这一行时，Web 的安装程序会停止。
+**1. 每台服务器。** 在运行 Relay 或 Web 的每台服务器上安装 Caddy：
 
 ```sh
 sudo apt install caddy curl minisign           # minisign 是可选的；安装后，每次安装都会验证安装包的签名
-grep -qxF 'import sites/*.caddy' /etc/caddy/Caddyfile || echo 'import sites/*.caddy' | sudo tee -a /etc/caddy/Caddyfile
 sudo mkdir -p /etc/caddy/sites
 ```
+
+然后确认 `/etc/caddy/Caddyfile` 的顶层（不在任何站点块内）有且只有一行下面的内容，让 Caddy 加载 `/etc/caddy/sites/` 中的站点：
+
+```
+import sites/*.caddy
+```
+
+没有这一行时请加上，缺少它 Web 的安装程序会停止。已经有了就不要再加：同一个站点被导入两次，Caddy 会拒绝加载配置。
 
 **2. Relay**，在它的服务器上。先为 Relay 配置 Caddy，再安装：
 
@@ -63,7 +70,12 @@ curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/web
 sudo apt install curl minisign                 # minisign 是可选的，与服务器相同
 curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/host/install.sh | sh -s --
 loginctl enable-linger                         # 通过 ssh 使用，或希望退出登录后 Agent 继续运行时需要
-patchbay roots add "$HOME/projects"            # 允许 Agent 工作的工作区根目录；换成你自己的目录，可以添加多个
+```
+
+如果安装程序提示 `~/.local/bin` 不在 `PATH` 中，请先运行它给出的 `export PATH=...` 命令再继续。然后添加允许 Agent 工作的工作区根目录。这个目录必须已经存在；换成你自己的目录，可以添加多个：
+
+```sh
+patchbay roots add "$HOME/projects"
 ```
 
 如果不允许运行 `loginctl enable-linger`，可以请管理员运行 `sudo loginctl enable-linger <用户>`。`patchbay doctor` 会逐项检查这台电脑，并说明需要修复什么。
@@ -111,7 +123,7 @@ Relay 和 Web 需要用 `sudo sh`，并加上 `--domain`。每个 `install.sh` �
 RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 ```
 
-安装脚本已经内置了这个公钥，并会自动完成下面的检查。如果要手动验证安装包，把它的 `.minisig` 放在同一目录下，运行：
+安装脚本已经内置了这个公钥；已安装 `minisign` 时，它会自动完成下面的检查。如果要手动验证安装包，把它的 `.minisig` 放在同一目录下，运行：
 
 ```sh
 minisign -Vm patchbay-host-0.7.0-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR

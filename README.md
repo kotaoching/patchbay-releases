@@ -28,18 +28,25 @@ The Relay and the Web can run on the same server or on two. Each component's gui
 
 You need:
 
-- A server (or two) running Debian 12 or 13, or Ubuntu 24.04 or 26.04, on x86_64 or arm64, with TCP ports 80 and 443 open, and two domains pointing to it: one for the Relay and one for the Web.
+- A server (or two) running Debian 12 or 13, or Ubuntu 24.04 or 26.04, on x86_64 or arm64, with TCP ports 80 and 443 open, and a domain for the Relay and one for the Web, each pointing to the server it runs on.
 - A Computer running one of the same systems, used as the user who runs the agents, with Claude Code, Codex or pi installed, logged in and on that shell's `PATH`. The first install saves that `PATH` for the agents.
 
 The commands below use example domains. Set `RELAY_DOMAIN` and `WEB_DOMAIN` to your own in the shell where you run them.
 
-**1. Each server.** On every server that runs the Relay or the Web, install Caddy and make it load the sites in `/etc/caddy/sites/`. The Web's installer stops if this line is missing.
+**1. Each server.** On every server that runs the Relay or the Web, install Caddy:
 
 ```sh
 sudo apt install caddy curl minisign           # minisign is optional; with it, every install verifies the package's signature
-grep -qxF 'import sites/*.caddy' /etc/caddy/Caddyfile || echo 'import sites/*.caddy' | sudo tee -a /etc/caddy/Caddyfile
 sudo mkdir -p /etc/caddy/sites
 ```
+
+Then make sure `/etc/caddy/Caddyfile` contains this line once, at the top level (not inside a site block), so that Caddy loads the sites in `/etc/caddy/sites/`:
+
+```
+import sites/*.caddy
+```
+
+Add it if it is missing; the Web's installer stops without it. Do not add it a second time: a site imported twice makes Caddy refuse the configuration.
 
 **2. The Relay**, on its server. Configure Caddy for the Relay, then install it:
 
@@ -63,7 +70,12 @@ curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/web
 sudo apt install curl minisign                 # minisign is optional, as on the server
 curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/host/install.sh | sh -s --
 loginctl enable-linger                         # needed over ssh, and for agents to keep running after you log out
-patchbay roots add "$HOME/projects"            # a root folder the agents may work in; use your own, and add more if you like
+```
+
+If the installer says that `~/.local/bin` is not on your `PATH`, run the `export PATH=...` line it prints before going on. Then add a root folder the agents may work in. It must be a folder that already exists; use your own, and add more if you like:
+
+```sh
+patchbay roots add "$HOME/projects"
 ```
 
 If `loginctl enable-linger` is not allowed, an administrator can run `sudo loginctl enable-linger <user>`. `patchbay doctor` checks the Computer item by item and says what to fix.
@@ -111,7 +123,7 @@ Every package is signed with [minisign](https://jedisct1.github.io/minisign/). T
 RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 ```
 
-The installers have it built in and check everything below themselves. To verify a package by hand, put its `.minisig` in the same directory and run:
+The installers have it built in and, when `minisign` is installed, check everything below themselves. To verify a package by hand, put its `.minisig` in the same directory and run:
 
 ```sh
 minisign -Vm patchbay-host-0.7.0-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
