@@ -1,22 +1,24 @@
-# Patchbay releases
+# Shayan releases
 
 English | [简体中文](README.zh-CN.md)
 
-This repository holds the release packages of Patchbay, their signatures and their installers. The source code is not here.
+Shayan (/ˈʃɑːjɛn/ SHAH-yen; 沙燕, *shāyàn*) is named after the Beijing swallow kite. Its Chinese name is 纸鸢. Up to 0.6.1 it was called Patchbay.
 
-Patchbay lets you run coding agents (Claude Code, Codex, pi) on your own computer and work with them from your phone or a browser: start them, follow what they do, answer their approval requests and take over their terminal.
+This repository holds the release packages of Shayan, their signatures and their installers. The source code is not here.
 
-> No version has been published here yet; the first will be the one after 0.6.1. Each component's guide below becomes available when that component's first version is marked as the latest.
+Shayan lets you run coding agents (Claude Code, Codex, pi) on your own computer and work with them from your phone or a browser: start them, follow what they do, answer their approval requests and take over their terminal.
+
+> No version has been published here yet; the first will be 0.7.0, the first under the name Shayan. Each component's guide below becomes available when that component's first version is marked as the latest.
 
 ## Components
 
-Patchbay has three components. Each has its own package and its own version numbers.
+Shayan has three components. Each has its own package and its own version numbers.
 
 | Component | What it does | Package |
 | --- | --- | --- |
-| Host | Runs on the Computer where your coding agents run, as the user who runs them | `patchbay-host-<version>-linux-<x64 or arm64>.tar.gz` |
-| Relay | Runs on a server with a public address and relays the connection between your phone and the Computer | `patchbay-relay-<version>-linux-<x64 or arm64>.tar.gz` |
-| Web | Runs on a server with a public address and serves the interface you open on your phone or in a browser | `patchbay-web-<version>-any.tar.gz` |
+| Host | Runs on the Computer where your coding agents run, as the user who runs them | `shayan-host-<version>-linux-<x64 or arm64>.tar.gz` |
+| Relay | Runs on a server with a public address and relays the connection between your phone and the Computer | `shayan-relay-<version>-linux-<x64 or arm64>.tar.gz` |
+| Web | Runs on a server with a public address and serves the interface you open on your phone or in a browser | `shayan-web-<version>-any.tar.gz` |
 
 The Relay and the Web can run on the same server or on two. Each component's guide covers its requirements, configuration, upgrades, rollback, uninstalling and troubleshooting:
 
@@ -52,54 +54,54 @@ Add it if it is missing; the Web's installer stops without it. Do not add it a s
 
 ```sh
 RELAY_DOMAIN=relay.example.com
-printf '%s {\n\treverse_proxy 127.0.0.1:8787\n}\n' "$RELAY_DOMAIN" | sudo tee /etc/caddy/sites/patchbay-relay.caddy
+printf '%s {\n\treverse_proxy 127.0.0.1:8787\n}\n' "$RELAY_DOMAIN" | sudo tee /etc/caddy/sites/shayan-relay.caddy
 sudo systemctl reload caddy
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/relay/install.sh | sudo sh -s -- --domain "$RELAY_DOMAIN"   # add --docker /opt/patchbay-relay-docker to run it in Docker
+curl -fsSL https://github.com/kotaoching/shayan-releases/releases/download/relay/install.sh | sudo sh -s -- --domain "$RELAY_DOMAIN"   # add --docker /opt/shayan-relay-docker to run it in Docker
 ```
 
 **3. The Web**, on its server. Its installer configures Caddy itself:
 
 ```sh
 WEB_DOMAIN=app.example.com
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/web/install.sh | sudo sh -s -- --domain "$WEB_DOMAIN"
+curl -fsSL https://github.com/kotaoching/shayan-releases/releases/download/web/install.sh | sudo sh -s -- --domain "$WEB_DOMAIN"
 ```
 
 **4. The Host**, on the Computer, as that user (only `apt` needs sudo):
 
 ```sh
 sudo apt install curl minisign                 # minisign is optional, as on the server
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/host/install.sh | sh -s --
+curl -fsSL https://github.com/kotaoching/shayan-releases/releases/download/host/install.sh | sh -s --
 loginctl enable-linger                         # needed over ssh, and for agents to keep running after you log out
 ```
 
 If the installer says that `~/.local/bin` is not on your `PATH`, run the `export PATH=...` line it prints before going on. Then add a root folder the agents may work in. It must be a folder that already exists; use your own, and add more if you like:
 
 ```sh
-patchbay roots add "$HOME/projects"
+shayan roots add "$HOME/projects"
 ```
 
-If `loginctl enable-linger` is not allowed, an administrator can run `sudo loginctl enable-linger <user>`. `patchbay doctor` checks the Computer item by item and says what to fix.
+If `loginctl enable-linger` is not allowed, an administrator can run `sudo loginctl enable-linger <user>`. `shayan doctor` checks the Computer item by item and says what to fix.
 
 **5. Join the Relay.** When the Host is installed, create an invitation on the Relay's server:
 
 ```sh
-sudo patchbay-relay invite
+sudo shayan-relay invite
 ```
 
-It prints a line `patchbay relay join --url https://… --code …` with an invitation code. Run that line on the Computer within 5 minutes; it works once.
+It prints a line `shayan relay join --url https://… --code …` with an invitation code. Run that line on the Computer within 5 minutes; it works once.
 
-**6. Pair the phone.** When `patchbay relay` on the Computer shows `connected`, run `patchbay devices pair` there. It shows a pairing code as a QR code. On the phone, open the Web's address (for example `https://app.example.com`), add it to the Home Screen, and in it scan the pairing code. The phone then shows a confirmation code: type it into the Computer's terminal, where `patchbay devices pair` asks for it.
+**6. Pair the phone.** When `shayan relay` on the Computer shows `connected`, run `shayan devices pair` there. It shows a pairing code as a QR code. On the phone, open the Web's address (for example `https://app.example.com`), add it to the Home Screen, and in it scan the pairing code. The phone then shows a confirmation code: type it into the Computer's terminal, where `shayan devices pair` asks for it.
 
 ## Update
 
-If a machine runs 0.6.1 or earlier, it was installed from the previous download location, and the commands below still look there. Move it once by following the upgrade steps in the release notes of the first version published here; after that, update with these commands.
+If a machine runs Patchbay 0.6.1 or earlier, it does not update itself into Shayan. Move it once as each guide's "Moving from Patchbay 0.6.1" section says: remove Patchbay, install Shayan, then join the Relay and pair the phone again. After that, update with these commands.
 
 On each machine, this installs the latest version if it is newer than the installed one. With `--version <version>`, it installs that version, older ones too.
 
 ```sh
-patchbay update                                # the Computer
-sudo patchbay-relay update                     # the Relay
-sudo /srv/patchbay-web/current/fetch.sh        # the Web
+shayan update                                # the Computer
+sudo shayan-relay update                     # the Relay
+sudo /srv/shayan-web/current/fetch.sh        # the Web
 ```
 
 ## Releases
@@ -110,7 +112,7 @@ sudo /srv/patchbay-web/current/fetch.sh        # the Web
 To install a version by its number, including one not yet marked as the latest, replace `<component>` and `<version>`:
 
 ```
-curl -fsSL https://github.com/kotaoching/patchbay-releases/releases/download/<component>-v<version>/install.sh | sh -s -- --version <version>
+curl -fsSL https://github.com/kotaoching/shayan-releases/releases/download/<component>-v<version>/install.sh | sh -s -- --version <version>
 ```
 
 For the Relay and the Web, use `sudo sh` and add `--domain`. Each `install.sh` downloads the version's package, verifies its signature when `minisign` is installed (otherwise it relies on HTTPS alone and says so), and runs the installer inside the package with the options you gave.
@@ -126,7 +128,7 @@ RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 The installers have it built in and, when `minisign` is installed, check everything below themselves. To verify a package by hand, put its `.minisig` in the same directory and run:
 
 ```sh
-minisign -Vm patchbay-host-0.7.0-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
+minisign -Vm shayan-host-0.7.0-linux-x64.tar.gz -P RWQca4FgH3lic/sEVYQezYMwc0E1g+AUX2uPojhiy5dVjJEqKYdcmbgR
 ```
 
 minisign checks the content, not the file name, so a renamed file still verifies. After it succeeds, make sure the trusted comment it prints is exactly the package's file name.
