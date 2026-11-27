@@ -8,8 +8,6 @@ This repository holds the release packages of Shayan, their signatures and their
 
 Shayan lets you run coding agents (Claude Code, Codex, pi) on your own computer and work with them from your phone or a browser: start them, follow what they do, answer their approval requests and take over their terminal.
 
-> No version has been published here yet; the first will be 0.7.0, the first under the name Shayan. Each component's guide below becomes available when that component's first version is marked as the latest.
-
 ## Components
 
 Shayan has three components. Each has its own package and its own version numbers.
