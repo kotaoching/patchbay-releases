@@ -1,8 +1,12 @@
-# Shayan releases
+# shayan releases
 
 English | [简体中文](README.zh-CN.md)
 
+**Run coding agents on your computer. Stay in control wherever you work.**
+
 Shayan (/ˈʃɑːjɛn/ SHAH-yen; 沙燕, *shāyàn*) is named after the Beijing swallow kite. Its Chinese name is 纸鸢. Up to 0.6.1 it was called Patchbay.
+
+*The agents run. You hold the line.*
 
 This repository holds the release packages of Shayan, their signatures and their installers. The source code is not here.
 
